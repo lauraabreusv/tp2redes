@@ -40,35 +40,34 @@ def recv_msg(s, format_=None):
 
 	return data
 
-def send_file(s, s_udp, header, data, udp_port, n_exec):
-	if(s_udp.sendto(header + data, ('', udp_port))):
-		try:
-			#oi tudubm
-			message = s.recv(1024)
-		except:
-			if n_exec == 5:
-				print('cant send package')
-				s.close() #ver aqui pq ne, mas acho q so desiste
-				exit()
-			n_exec+=1
-			return send_file(s, s_udp, header, data,  udp_port, n_exec)
-		# print
+def send_file(s, s_udp, header, data, udp_port, n_exec, n_seq):
+	print('n seq e n exec: ', n_seq, n_exec)
+	# if():
+	s_udp.sendto(header + data, ('', udp_port))
+	try:
+		message = s.recv(8)
+
 		ack_data = struct.unpack('2s i', message)
 		print(ack_data[1])
-
-		# mutex.acquire()
-		# running_threads-=1
-		# mutex.release()
 		return
 
-	else:
+	except:
+		print('ENTRA AQUI')
 		if n_exec == 5:
-			print('cant send pack')
-			s.close() #ver aqui pq ne, mas acho q so desiste
-			exit()
-			return
+			print('cant send package')
+			s.close() 
+			os._exit(1)
 		n_exec+=1
 		return send_file(s, s_udp, header, data,  udp_port, n_exec)
+
+	# else:
+	# 	if n_exec == 5:
+	# 		print('cant send pack')
+	# 		s.close() 
+	# 		os._exit(1)
+
+	# 	n_exec+=1
+	# 	return send_file(s, s_udp, header, data,  udp_port, n_exec)
 
 
 def protocol(s, file, filename):
@@ -116,34 +115,34 @@ def protocol(s, file, filename):
 
 	header = struct.pack('2s i', file_msg, n_seq)
 	data = f.read(1024) #conf os numeros dps
-	s.settimeout(1)
+	s.settimeout(5)
 
 	thread_list = []
-	# global running_threads
-	# running_threads = 0
 	while(data):
-		#aqui eu faço os bagui mas aqui tenho q receber
-
-		#acho q isso funciona (sai automatico da lista pq a thread morre)		
-
 		while len(thread_list) >= N_THREADS:
-			thread_list = [t for t in thread_list if not t.is_alive()]
+			thread_list = [t for t in thread_list if t.is_alive()]
 
-		# mutex.acquire()
-		# running_threads+=1
-		# mutex.release()
-		thread = threading.Thread(target = send_file, args=(s, s_udp, header, data, udp_port, 0)) 
-		thread_list.append(thread)
+		thread = threading.Thread(target = send_file, args=(s, s_udp, header, data, udp_port, 0, n_seq))
 		thread.daemon = True
+		thread_list.append(thread)
 		thread.start()
-		# thread.join()
 
+		# print('thread %d returned', n_seq)
 		data = f.read(1024)
+		# print('data:')
+		# print(data)
 		n_seq+=1
+		print('n_seq: ', n_seq)
 		header = struct.pack('2s i', file_msg, n_seq)
+
+	print('sai do loop')
+
+	for thread in thread_list:
+		thread.join()
 		
 	while len(thread_list) > 0:
-		thread_list = [t for t in thread_list if not t.is_alive()]
+		thread_list = [t for t in thread_list if t.is_alive()]
+		# print(len(thread_list))
 
 	print('sai?')
 	s.settimeout(None)		

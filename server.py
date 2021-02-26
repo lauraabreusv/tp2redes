@@ -52,7 +52,7 @@ def client(conn, udp_port):
 
 	while(True):
 		#stop and wait
-		ready = select.select([s_udp], [], [], 3) #3 sec timeout
+		ready = select.select([s_udp], [], [], 5) #3 sec timeout
 		if ready[0]:
 			data, addr_udp = s_udp.recvfrom(1024)
 
@@ -87,7 +87,7 @@ def client(conn, udp_port):
 	fim_msg = '05'
 	message = b''
 	message += str.encode(fim_msg)
-
+	print('chega ai?????????????????????????????????????????')
 	conn.sendall(message)
 
 	conn.close()
